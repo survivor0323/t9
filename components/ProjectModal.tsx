@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { X, Plus, Trash2, Image as ImageIcon } from 'lucide-react'
+import { X, Plus, Trash2, Image as ImageIcon, Upload, Loader2 } from 'lucide-react'
 import { Project } from '@/types'
 
 type ProjectModalProps = {
@@ -20,6 +20,7 @@ export default function ProjectModal({
     project,
 }: ProjectModalProps) {
     const [loading, setLoading] = useState(false)
+    const [uploading, setUploading] = useState(false)
     const [formData, setFormData] = useState({
         title: '',
         url: '',
@@ -27,9 +28,7 @@ export default function ProjectModal({
         screenshots: [] as string[],
     })
 
-    // New screenshot input state
-    const [newScreenshot, setNewScreenshot] = useState('')
-
+    const fileInputRef = useRef<HTMLInputElement>(null)
     const router = useRouter()
     const supabase = createClient()
 
@@ -52,17 +51,45 @@ export default function ProjectModal({
         }
     }, [isOpen, project])
 
-    const handleAddScreenshot = () => {
-        if (!newScreenshot.trim()) return
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return
+
         if (formData.screenshots.length >= 3) {
             alert("You can only add up to 3 screenshots.")
             return
         }
-        setFormData(prev => ({
-            ...prev,
-            screenshots: [...prev.screenshots, newScreenshot.trim()]
-        }))
-        setNewScreenshot('')
+
+        const file = e.target.files[0]
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${userId}/${Date.now()}.${fileExt}`
+        const filePath = `${fileName}`
+
+        setUploading(true)
+
+        try {
+            const { error: uploadError } = await supabase.storage
+                .from('screenshots')
+                .upload(filePath, file)
+
+            if (uploadError) {
+                throw uploadError
+            }
+
+            const { data } = supabase.storage.from('screenshots').getPublicUrl(filePath)
+
+            setFormData(prev => ({
+                ...prev,
+                screenshots: [...prev.screenshots, data.publicUrl]
+            }))
+        } catch (error) {
+            console.error('Error uploading image:', error)
+            alert('Failed to upload image')
+        } finally {
+            setUploading(false)
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ''
+            }
+        }
     }
 
     const handleRemoveScreenshot = (index: number) => {
@@ -175,55 +202,61 @@ export default function ProjectModal({
                             />
                         </div>
 
-                        {/* Screenshots Input */}
+                        {/* Screenshots Input (File Upload) */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Screenshots (URL) <span className="text-xs text-gray-400">Max 3</span>
+                                Screenshots <span className="text-xs text-gray-400">Max 3</span>
                             </label>
-                            <div className="flex gap-2 mb-2">
-                                <input
-                                    type="url"
-                                    value={newScreenshot}
-                                    onChange={(e) => setNewScreenshot(e.target.value)}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-colors text-sm"
-                                    placeholder="https://image-url.com/..."
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            handleAddScreenshot();
-                                        }
-                                    }}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={handleAddScreenshot}
-                                    disabled={formData.screenshots.length >= 3 || !newScreenshot}
-                                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                </button>
-                            </div>
 
-                            {/* Screenshots List */}
-                            {formData.screenshots.length > 0 && (
-                                <div className="space-y-2 mt-3">
-                                    {formData.screenshots.map((url, idx) => (
-                                        <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100 group">
-                                            <div className="w-8 h-8 bg-gray-200 rounded overflow-hidden flex-shrink-0">
-                                                <img src={url} alt="Preview" className="w-full h-full object-cover" onError={(e) => e.currentTarget.src = 'https://via.placeholder.com/150?text=Error'} />
-                                            </div>
-                                            <span className="text-xs text-gray-500 truncate flex-1">{url}</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveScreenshot(idx)}
-                                                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                                            >
-                                                <Trash2 className="w-3 h-3" />
-                                            </button>
+                            <div className="flex flex-col gap-3">
+                                {/* Upload Button */}
+                                {formData.screenshots.length < 3 && (
+                                    <div className="relative">
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleFileChange}
+                                            disabled={uploading}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
+                                        />
+                                        <div className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors">
+                                            {uploading ? (
+                                                <div className="flex items-center gap-2 text-gray-500">
+                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                    <span className="text-sm">Uploading...</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 text-gray-500">
+                                                    <Upload className="w-5 h-5" />
+                                                    <span className="text-sm font-medium">Click to upload screenshot</span>
+                                                </div>
+                                            )}
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                    </div>
+                                )}
+
+                                {/* Screenshots List */}
+                                {formData.screenshots.length > 0 && (
+                                    <div className="space-y-2">
+                                        {formData.screenshots.map((url, idx) => (
+                                            <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-100 group">
+                                                <div className="w-10 h-10 bg-gray-200 rounded overflow-hidden flex-shrink-0 border border-gray-200">
+                                                    <img src={url} alt="Preview" className="w-full h-full object-cover" />
+                                                </div>
+                                                <span className="text-xs text-gray-500 truncate flex-1 font-mono">{url.split('/').pop()}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveScreenshot(idx)}
+                                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -232,7 +265,7 @@ export default function ProjectModal({
                     <button
                         type="submit"
                         form="project-form"
-                        disabled={loading}
+                        disabled={loading || uploading}
                         className="w-full py-2.5 bg-black text-white rounded-md font-medium hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 transition-all"
                     >
                         {loading ? 'Saving...' : (project ? 'Update App' : 'Register App')}
