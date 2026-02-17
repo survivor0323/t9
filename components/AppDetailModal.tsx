@@ -36,7 +36,7 @@ export default function AppDetailModal({
                 try {
                     const { data } = await supabase
                         .from('reviews')
-                        .select('*')
+                        .select('*, profiles(full_name, username)')
                         .eq('project_id', project.id)
                         .order('created_at', { ascending: false })
 
@@ -86,10 +86,12 @@ export default function AppDetailModal({
             // Refresh reviews
             const { data } = await supabase
                 .from('reviews')
-                .select('*')
+                .select('*, profiles(full_name, username)')
                 .eq('project_id', project.id)
                 .order('created_at', { ascending: false })
             if (data) setReviews(data)
+
+            router.refresh() // Update main grid ratings
 
             setUserComment('')
             setUserRating(5)
@@ -254,7 +256,9 @@ export default function AppDetailModal({
                                                     U
                                                 </div>
                                                 <div>
-                                                    <div className="text-sm font-medium text-gray-900">User</div>
+                                                    <div className="text-sm font-medium text-gray-900">
+                                                        {review.profiles?.full_name || review.profiles?.username || 'User'}
+                                                    </div>
                                                     <div className="flex text-yellow-400 text-xs mb-1">
                                                         {[...Array(5)].map((_, i) => (
                                                             <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'fill-current' : 'text-gray-300'}`} />

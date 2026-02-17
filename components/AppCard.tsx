@@ -38,10 +38,17 @@ export default function AppCard({
                         <p className="text-sm text-gray-500 mt-1 line-clamp-2 h-10">
                             {project.description || "No description provided."}
                         </p>
-                        <div className="flex items-center gap-3 mt-3 text-xs text-gray-400">
-                            <span className="flex items-center gap-1">
-                                4.5 <Star className="w-3 h-3 fill-yellow-400" />
-                            </span>
+                        <div className="flex items-center gap-3 mt-3 text-xs text-gray-500">
+                            {project.review_count && project.review_count > 0 ? (
+                                <span className="flex items-center gap-1 font-medium text-gray-900">
+                                    {project.average_rating} <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                    <span className="text-gray-400 font-normal">({project.review_count})</span>
+                                </span>
+                            ) : (
+                                <span className="text-gray-400 italic">
+                                    아직 별점이 없습니다. 첫 리뷰어가 되어주세요!
+                                </span>
+                            )}
                             <span className="flex items-center gap-1">
                                 {project.views} <Eye className="w-3 h-3" />
                             </span>
