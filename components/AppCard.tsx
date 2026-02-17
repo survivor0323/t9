@@ -21,7 +21,14 @@ export default function AppCard({
                 className="group relative bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-all cursor-pointer hover:-translate-y-1"
             >
                 <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center text-2xl font-bold text-gray-600 shadow-inner group-hover:scale-105 transition-transform">
+                    <div
+                        className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-bold text-gray-700 shadow-inner group-hover:scale-105 transition-transform"
+                        style={{
+                            background: project.profiles?.card_color
+                                ? project.profiles.card_color
+                                : 'linear-gradient(to bottom right, #f3f4f6, #e5e7eb)' // Fallback gray gradient
+                        }}
+                    >
                         {project.title.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">

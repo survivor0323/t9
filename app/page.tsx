@@ -15,7 +15,7 @@ export default async function Home() {
   // Fetch Projects (Web Apps)
   const { data: projects, error } = await supabase
     .from('projects')
-    .select('*')
+    .select('*, profiles(card_color)')
     .order('created_at', { ascending: false })
 
   if (error) {

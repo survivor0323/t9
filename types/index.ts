@@ -8,6 +8,14 @@ export type Project = {
     description?: string
     views: number
     screenshots?: string[]
+    profiles?: Profile // Owner information
+}
+
+export type Profile = {
+    id: string
+    full_name?: string
+    avatar_url?: string
+    card_color?: string
 }
 
 export type Review = {
@@ -19,9 +27,4 @@ export type Review = {
     created_at: string
 }
 
-export type Profile = {
-    id: string
-    email: string
-    full_name?: string
-    avatar_url?: string
-}
+

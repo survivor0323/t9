@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Header from '@/components/Header'
 import AppGrid from '@/components/AppGrid'
+import ProfileHeader from '@/components/ProfileHeader'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,9 +17,16 @@ export default async function ProfilePage() {
         redirect('/login')
     }
 
+    // Fetch User Profile (for color)
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
     const { data: projects, error } = await supabase
         .from('projects')
-        .select('*')
+        .select('*, profiles(card_color)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
@@ -31,27 +39,7 @@ export default async function ProfilePage() {
             <Header user={user} />
 
             <main className="container mx-auto px-4 py-8 max-w-7xl">
-                <div className="mb-8 border-b border-gray-100 pb-8">
-                    <div className="flex items-center gap-4 mb-4">
-                        {user.user_metadata?.avatar_url ? (
-                            <img
-                                src={user.user_metadata.avatar_url}
-                                alt="Profile"
-                                className="w-16 h-16 rounded-full border border-gray-200"
-                            />
-                        ) : (
-                            <div className="w-16 h-16 bg-gray-200 rounded-full" />
-                        )}
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-                                My Apps
-                            </h1>
-                            <p className="text-gray-500">
-                                Manage the applications you have shared with the community.
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <ProfileHeader user={user} profile={profile} />
 
                 <AppGrid projects={projects || []} userId={user.id} />
             </main>
