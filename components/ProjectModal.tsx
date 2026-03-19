@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { X, Plus, Trash2, Image as ImageIcon, Upload, Loader2 } from 'lucide-react'
+import { X, Trash2, Upload, Loader2 } from 'lucide-react'
 import { Project } from '@/types'
+
+const CATEGORIES = ['기획', '영업', '마케팅', '디자인', '운영', '경영', '개발', '기타']
 
 type ProjectModalProps = {
     isOpen: boolean
@@ -25,6 +27,7 @@ export default function ProjectModal({
         title: '',
         url: '',
         description: '',
+        category: '',
         screenshots: [] as string[],
     })
 
@@ -38,14 +41,15 @@ export default function ProjectModal({
                 title: project.title,
                 url: project.url || '',
                 description: project.description || '',
+                category: project.category || '',
                 screenshots: project.screenshots || [],
             })
         } else if (isOpen && !project) {
-            // Reset for create mode
             setFormData({
                 title: '',
                 url: '',
                 description: '',
+                category: '',
                 screenshots: [],
             })
         }
@@ -112,6 +116,7 @@ export default function ProjectModal({
                         title: formData.title,
                         url: formData.url,
                         description: formData.description,
+                        category: formData.category || null,
                         screenshots: formData.screenshots,
                     })
                     .eq('id', project.id)
@@ -148,7 +153,7 @@ export default function ProjectModal({
             <div className="w-full max-w-lg bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between p-4 border-b border-gray-100 flex-shrink-0">
                     <h2 className="text-lg font-semibold text-gray-900">
-                        {project ? 'Edit App' : 'Register New App'}
+                        {project ? '앱 수정' : '앱 등록'}
                     </h2>
                     <button
                         onClick={onClose}
@@ -161,51 +166,56 @@ export default function ProjectModal({
                 <div className="overflow-y-auto p-4 flex-1">
                     <form id="project-form" onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                App Name
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">앱 이름</label>
                             <input
                                 required
                                 type="text"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-colors"
-                                placeholder="e.g., My Awesome Calculator"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-400 transition-colors"
+                                placeholder="앱 이름을 입력하세요"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                URL
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">URL</label>
                             <input
                                 required
                                 type="url"
                                 value={formData.url}
                                 onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-colors"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-400 transition-colors"
                                 placeholder="https://..."
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Description
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">설명</label>
                             <textarea
-                                required
                                 rows={3}
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-colors resize-none"
-                                placeholder="What does your app do?"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-400 transition-colors resize-none"
+                                placeholder="어떤 앱인지 설명해주세요"
                             />
                         </div>
 
-                        {/* Screenshots Input (File Upload) */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">카테고리</label>
+                            <select
+                                value={formData.category}
+                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-400 bg-white transition-colors"
+                            >
+                                <option value="">선택하세요</option>
+                                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+
+                        {/* 스크린샷 */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Screenshots <span className="text-xs text-gray-400">Max 3</span>
+                                스크린샷 <span className="text-xs text-gray-400">최대 3장</span>
                             </label>
 
                             <div className="flex flex-col gap-3">
@@ -268,7 +278,7 @@ export default function ProjectModal({
                         disabled={loading || uploading}
                         className="w-full py-2.5 bg-black text-white rounded-md font-medium hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 transition-all"
                     >
-                        {loading ? 'Saving...' : (project ? 'Update App' : 'Register App')}
+                        {loading ? '저장 중...' : (project ? '수정 완료' : '등록')}
                     </button>
                 </div>
             </div>

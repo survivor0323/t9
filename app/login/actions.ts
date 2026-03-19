@@ -1,23 +1,17 @@
 'use server'
 
-import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 
-export async function signInWithGoogle() {
-    const supabase = await createClient()
-    const origin = (await headers()).get('origin')
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: `${origin}/auth/callback`,
-        },
-    })
-
-    if (error) {
-        redirect('/login?message=Could not authenticate user')
-    }
-
-    return redirect(data.url)
+export async function login() {
+  const supabase = await createClient()
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+    },
+  })
+  if (data.url) {
+    redirect(data.url)
+  }
 }
