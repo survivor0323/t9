@@ -74,7 +74,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
 
         {/* Section header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Motive AI Hub</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Motiv AI Hub</h1>
           <p className="text-gray-500 mt-1">바이브코딩 웹애플리케이션, AI로 만든 문서와 크리에이티브를 공유합니다</p>
         </div>
 
