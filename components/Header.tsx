@@ -2,7 +2,8 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { Search, Plus, LogOut, User as UserIcon, ChevronDown, Globe, FileText, Shield } from 'lucide-react'
+import { Search, Plus, LogOut, User as UserIcon, ChevronDown, Globe, FileText, Shield, Bot } from 'lucide-react'
+import QuizModal from './QuizModal'
 import { createClient } from '@/utils/supabase/client'
 import { Profile } from '@/types'
 
@@ -14,6 +15,7 @@ type HeaderProps = {
 export default function Header({ user, profile }: HeaderProps) {
   const [registerOpen, setRegisterOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [quizOpen, setQuizOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
   const router = useRouter()
   const pathname = usePathname()
@@ -44,6 +46,7 @@ export default function Header({ user, profile }: HeaderProps) {
   }
 
   return (
+  <>
     <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/90 backdrop-blur-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4 max-w-7xl">
         {/* Logo */}
@@ -72,6 +75,15 @@ export default function Header({ user, profile }: HeaderProps) {
         <div className="flex items-center gap-2">
           {user ? (
             <>
+              {/* Quiz button */}
+              <button
+                onClick={() => setQuizOpen(true)}
+                className="relative p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                title="퀴즈 풀기"
+              >
+                <Bot className="w-5 h-5" />
+              </button>
+
               {/* Register dropdown */}
               <div className="relative" ref={registerRef}>
                 <button
@@ -163,5 +175,11 @@ export default function Header({ user, profile }: HeaderProps) {
         </div>
       </div>
     </header>
+
+    {/* Quiz Modal */}
+    {quizOpen && user && (
+      <QuizModal userId={user.id} onClose={() => setQuizOpen(false)} />
+    )}
+  </>
   )
 }
