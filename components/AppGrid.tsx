@@ -2,7 +2,10 @@
 import { useState, useMemo } from 'react'
 import { Project } from '@/types'
 import AppCard from './AppCard'
+import AppDetailModal from './AppDetailModal'
 import { createClient } from '@/utils/supabase/client'
+import { LayoutGrid, List, Star, Eye, FileText, Globe } from 'lucide-react'
+
 
 const CATEGORIES = ['전체', '기획', '영업', '마케팅', '디자인', '운영', '경영', '개발', '기타']
 const SORT_OPTIONS = [
@@ -27,6 +30,8 @@ export default function AppGrid({
   const [sort, setSort] = useState('newest')
   const [tagFilter, setTagFilter] = useState('')
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set(bookmarkedIds))
+  const [viewType, setViewType] = useState<'card' | 'list'>('card')
+  const [listModalProject, setListModalProject] = useState<Project | null>(null)
   const supabase = createClient()
 
   const allTags = useMemo(() => {
@@ -117,6 +122,22 @@ export default function AppGrid({
               </option>
             ))}
           </select>
+          <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setViewType('card')}
+              className={`p-1.5 transition-colors ${viewType === 'card' ? 'bg-green-600 text-white' : 'text-gray-400 hover:bg-gray-100'}`}
+              title="카드 보기"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewType('list')}
+              className={`p-1.5 transition-colors ${viewType === 'list' ? 'bg-green-600 text-white' : 'text-gray-400 hover:bg-gray-100'}`}
+              title="리스트 보기"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -162,19 +183,70 @@ export default function AppGrid({
         </div>
       )}
 
-      {/* Grid */}
+      {/* Grid / List */}
       {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map(project => (
-            <AppCard
-              key={project.id}
-              project={project}
-              userId={userId}
-              isBookmarked={bookmarks.has(project.id)}
-              onBookmarkToggle={handleBookmarkToggle}
-            />
-          ))}
-        </div>
+        viewType === 'card' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.map(project => (
+              <AppCard
+                key={project.id}
+                project={project}
+                userId={userId}
+                isBookmarked={bookmarks.has(project.id)}
+                onBookmarkToggle={handleBookmarkToggle}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
+            {filtered.map(project => (
+              <div
+                key={project.id}
+                onClick={() => setListModalProject(project)}
+                className="flex items-center gap-4 px-4 py-3 bg-white hover:bg-gray-50 cursor-pointer transition-colors"
+              >
+                {/* Thumbnail */}
+                <div className="w-28 h-20 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                  {project.screenshots?.[0] ? (
+                    <img src={project.screenshots[0]} alt={project.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                      {project.type === 'document' ? <FileText className="w-5 h-5" /> : <Globe className="w-5 h-5" />}
+                    </div>
+                  )}
+                </div>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${project.type === 'document' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
+                      {project.type === 'document' ? '문서' : '웹앱'}
+                    </span>
+                    {project.category && <span className="text-xs text-gray-400">{project.category}</span>}
+                    <p className="font-medium text-gray-900 truncate">{project.title}</p>
+                  </div>
+                  <p className="text-sm text-gray-500 truncate">{project.description}</p>
+                </div>
+                {/* Right: stats + author + date */}
+                <div className="flex flex-col items-end gap-1.5 flex-shrink-0 text-xs text-gray-400">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1"><Star className="w-3 h-3" />{project.average_rating ? project.average_rating.toFixed(1) : '-'}</span>
+                    <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{project.views}</span>
+                  </div>
+                  <span className="text-gray-500 font-medium">{(project as any).profiles?.full_name || '알 수 없음'}</span>
+                  <span>{new Date(project.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })}</span>
+                </div>
+              </div>
+            ))}
+            {listModalProject && (
+              <AppDetailModal
+                isOpen={true}
+                project={listModalProject}
+                userId={userId}
+                onClose={() => setListModalProject(null)}
+              />
+            )}
+          </div>
+        )
       ) : (
         <div className="text-center py-20 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
           <p className="text-gray-400 text-lg mb-2">산출물이 없습니다</p>
