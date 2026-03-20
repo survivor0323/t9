@@ -10,6 +10,8 @@ npm run build    # Production build
 npm run lint     # ESLint
 ```
 
+No test framework is configured.
+
 ## Architecture Overview
 
 **M.hub** is an internal AI-output marketplace built with Next.js 16 (App Router), Supabase, and OpenAI.
@@ -20,6 +22,7 @@ npm run lint     # ESLint
 - Google OAuth only, restricted to `@motiv-i.com`, `@madcorp.co.kr`, or `vibeyangjm@gmail.com`
 - Auth flow: `app/login/actions.ts` → Google → `app/auth/callback/route.ts` (domain check) → home
 - Session managed via cookies using `@supabase/ssr`
+- Unauthorized domains redirect to `/unauthorized`
 
 **Middleware**
 - `proxy.ts` (NOT `middleware.ts`) — Next.js 16 uses this naming. Exporting `proxy` function refreshes Supabase sessions on every request. Both `proxy.ts` and `middleware.ts` cannot coexist.
@@ -30,26 +33,40 @@ npm run lint     # ESLint
 - `utils/supabase/server.ts` — Server client (anon key + cookie session) — use in Server Components and API routes
 - `utils/supabase/admin.ts` — Admin client (service role key, bypasses RLS) — use only server-side for privileged writes (e.g. quiz question creation)
 
+**Supabase Storage Buckets:** `documents` (uploaded files), `screenshots` (project thumbnails)
+
 **Data Fetching**
 - Home and profile pages use SSR (`force-dynamic`) to fetch data server-side
 - Client components handle interactive state (filters, bookmarks, modals)
 - All pages with user data use `supabase.auth.getUser()` — never trust client-side session alone
 
+**Project Lifecycle**
+- Two types: `webapp` and `document`
+- Three statuses: `draft` → `public` / `hidden`
+- Registration: `/register/webapp` and `/register/document` (each has `/[id]/edit` for editing)
+- Publish conditions: description 20+ chars, 1+ tags, category selected; webapp needs 1+ screenshot, document needs file_url
+- Optional: `difficulty` (low/medium/high), `is_featured`, GitHub URL (triggers AI analysis)
+
 **AI Features (all in `app/api/`)**
 | Route | Model | Purpose |
 |-------|-------|---------|
 | `/api/chat` | gpt-4o | Streaming chatbot with app catalog context |
-| `/api/quiz` | gpt-4o-mini | Daily 4-choice quiz generation + submission |
+| `/api/quiz` | gpt-4o-mini | Daily 4-choice quiz generation |
+| `/api/quiz/answer` | — | Quiz submission (+10 points per correct answer) |
 | `/api/classify` | gpt-4o-mini | Auto-categorize new projects |
-| `/api/analyze` | gpt-4o | Generate strength/improvement feedback for a project |
+| `/api/analyze` | gpt-4o | Technical analysis + improvement feedback for a project |
 
 Quiz uses `createAdminClient()` to bypass RLS when inserting new questions (only admins can write via RLS).
+
+**Admin**
+- `/admin` page restricted to users with `profiles.is_admin = true`
+- Dashboard shows project/user stats and management
 
 **Categories** (used across AppGrid, register pages, classify API):
 `전체, 기획, 영업, 마케팅, 디자인, 운영, 경영, 개발, 기타`
 
 ### Database Tables
-`profiles`, `projects`, `reviews`, `bookmarks`, `quiz_questions`, `quiz_submissions` — schema + RLS policies in `supabase/schema.sql`.
+`profiles`, `projects`, `reviews`, `bookmarks`, `quiz_questions`, `quiz_submissions` — schema + RLS policies in `supabase/schema.sql`, migrations in `supabase/migrations/`.
 
 ### Environment Variables
 ```
