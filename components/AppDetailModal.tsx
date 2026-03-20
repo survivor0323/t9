@@ -38,10 +38,38 @@ export default function AppDetailModal({
   const [submittingReview, setSubmittingReview] = useState(false)
   const [reviewSuccess, setReviewSuccess] = useState(false)
 
+  // AI analysis state
+  const [analyzing, setAnalyzing] = useState(false)
+  const [localFeedback, setLocalFeedback] = useState<string | null>(null)
+  const [localFeedbackAt, setLocalFeedbackAt] = useState<string | null>(null)
+
   const isOwner = userId === project.user_id
   const screenshots = project.screenshots ?? []
   const hasPrev = screenshotIndex > 0
   const hasNext = screenshotIndex < screenshots.length - 1
+
+  const feedback = localFeedback ?? project.ai_feedback
+  const feedbackAt = localFeedbackAt ?? project.ai_feedback_at
+
+  const handleAnalyze = async () => {
+    setAnalyzing(true)
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setLocalFeedback(data.feedback)
+        setLocalFeedbackAt(new Date().toISOString())
+      }
+    } catch (e) {
+      console.error('Analysis failed:', e)
+    } finally {
+      setAnalyzing(false)
+    }
+  }
 
   // Increment views on open
   useEffect(() => {
@@ -371,17 +399,42 @@ export default function AppDetailModal({
             )}
 
             {/* AI Feedback */}
-            {project.ai_feedback && (
+            {feedback ? (
               <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-xl">
-                <h3 className="text-xs font-semibold text-green-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  ✨ AI 피드백
-                </h3>
-                <p className="text-sm text-green-800 leading-relaxed whitespace-pre-wrap">{project.ai_feedback}</p>
-                {project.ai_feedback_at && (
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-semibold text-green-700 uppercase tracking-wider flex items-center gap-1.5">
+                    ✨ AI 피드백
+                  </h3>
+                  {userId && (
+                    <button
+                      onClick={handleAnalyze}
+                      disabled={analyzing}
+                      className="text-xs text-green-600 hover:text-green-800 disabled:opacity-50 flex items-center gap-1"
+                    >
+                      {analyzing ? (
+                        <><span className="inline-block w-3 h-3 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />분석 중...</>
+                      ) : '다시 분석'}
+                    </button>
+                  )}
+                </div>
+                <p className="text-sm text-green-800 leading-relaxed whitespace-pre-wrap">{feedback}</p>
+                {feedbackAt && (
                   <p className="text-xs text-green-500 mt-2">
-                    {new Date(project.ai_feedback_at).toLocaleDateString('ko-KR')}
+                    {new Date(feedbackAt).toLocaleDateString('ko-KR')}
                   </p>
                 )}
+              </div>
+            ) : userId && (
+              <div className="mb-6">
+                <button
+                  onClick={handleAnalyze}
+                  disabled={analyzing}
+                  className="w-full py-3 rounded-xl border-2 border-dashed border-green-200 text-green-600 hover:bg-green-50 hover:border-green-300 transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {analyzing ? (
+                    <><span className="inline-block w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />AI 분석 중...</>
+                  ) : '✨ AI 분석 요청'}
+                </button>
               </div>
             )}
 
