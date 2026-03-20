@@ -40,16 +40,64 @@ answer는 0-3 사이의 정답 인덱스입니다.`
   return JSON.parse(jsonMatch[0])
 }
 
-export async function GET() {
+function formatQuiz(question: any) {
+  const options = (question.options as string[]).map((text: string, i: number) => ({
+    label: `${OPTION_LETTERS[i]}. ${text}`,
+    value: String(i),
+  }))
+  return {
+    id: question.id,
+    question: question.question,
+    options,
+    correct: String(question.answer),
+    explanation: question.explanation,
+  }
+}
+
+export async function GET(req: Request) {
   try {
     const supabase = await createClient()
     const admin = createAdminClient()
-    const today = new Date().toISOString().split('T')[0]
+    const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date())
+    const { searchParams } = new URL(req.url)
+    const mode = searchParams.get('mode')
 
     // Get current user
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Fetch or create today's question (use admin to bypass RLS)
+    // Random mode: return a random unanswered past question
+    if (mode === 'random' && user) {
+      // Get all question IDs the user already answered
+      const { data: submissions } = await supabase
+        .from('quiz_submissions')
+        .select('question_id')
+        .eq('user_id', user.id)
+
+      const answeredIds = (submissions || []).map(s => s.question_id)
+
+      // Fetch all questions not yet answered
+      let query = admin
+        .from('quiz_questions')
+        .select('*')
+        .lte('date', today)
+
+      if (answeredIds.length > 0) {
+        // Filter out answered questions using not.in
+        query = query.not('id', 'in', `(${answeredIds.join(',')})`)
+      }
+
+      const { data: unanswered } = await query
+
+      if (!unanswered || unanswered.length === 0) {
+        return NextResponse.json({ quiz: null, noMore: true })
+      }
+
+      // Pick a random one
+      const question = unanswered[Math.floor(Math.random() * unanswered.length)]
+      return NextResponse.json({ quiz: formatQuiz(question) })
+    }
+
+    // Default mode: today's quiz
     let question: any = null
     const { data: existing } = await admin
       .from('quiz_questions')
@@ -93,21 +141,7 @@ export async function GET() {
       }
     }
 
-    // Transform options to QuizOption format
-    const options = (question.options as string[]).map((text: string, i: number) => ({
-      label: `${OPTION_LETTERS[i]}. ${text}`,
-      value: String(i),
-    }))
-
-    return NextResponse.json({
-      quiz: {
-        id: question.id,
-        question: question.question,
-        options,
-        correct: String(question.answer),
-        explanation: question.explanation,
-      },
-    })
+    return NextResponse.json({ quiz: formatQuiz(question) })
   } catch (error) {
     console.error('Quiz GET error:', error)
     return NextResponse.json({ error: 'Failed to get quiz' }, { status: 500 })

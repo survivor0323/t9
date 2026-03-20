@@ -12,6 +12,9 @@ npm run lint     # ESLint
 
 No test framework is configured.
 
+## Timezone
+All date/time operations MUST use **Korean Standard Time (Asia/Seoul, UTC+9)**. Never use UTC or `new Date().toISOString()` for date comparisons — always apply `timeZone: 'Asia/Seoul'` (e.g. `new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date())`).
+
 ## Architecture Overview
 
 **M.hub** is an internal AI-output marketplace built with Next.js 16 (App Router), Supabase, and OpenAI.
