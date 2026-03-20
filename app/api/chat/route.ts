@@ -42,7 +42,7 @@ ${appsList || '(현재 등록된 앱이 없습니다)'}
     }
 
     const stream = await client.chat.completions.create({
-      model: 'gpt-5-codex',
+      model: 'gpt-4o',
       max_tokens: 1024,
       stream: true,
       messages: [

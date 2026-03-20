@@ -1,6 +1,7 @@
 import OpenAI from 'openai'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 
 const client = new OpenAI()
 
@@ -42,14 +43,15 @@ answer는 0-3 사이의 정답 인덱스입니다.`
 export async function GET() {
   try {
     const supabase = await createClient()
+    const admin = createAdminClient()
     const today = new Date().toISOString().split('T')[0]
 
     // Get current user
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Fetch or create today's question
+    // Fetch or create today's question (use admin to bypass RLS)
     let question: any = null
-    const { data: existing } = await supabase
+    const { data: existing } = await admin
       .from('quiz_questions')
       .select('*')
       .eq('date', today)
@@ -65,7 +67,7 @@ export async function GET() {
       } catch {
         return NextResponse.json({ quiz: null })
       }
-      const { data: created, error } = await supabase
+      const { data: created, error } = await admin
         .from('quiz_questions')
         .insert({ date: today, ...quiz })
         .select()

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await client.chat.completions.create({
-      model: 'gpt-5-codex',
+      model: 'gpt-4o',
       max_tokens: 1000,
       messages: [{
         role: 'user',
