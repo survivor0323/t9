@@ -25,7 +25,7 @@ export default function AppGrid({
   bookmarkedIds?: string[]
   searchQuery?: string
 }) {
-  const [typeFilter, setTypeFilter] = useState<'all' | 'webapp' | 'document'>('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'webapp' | 'document' | 'bookmark'>('all')
   const [category, setCategory] = useState('전체')
   const [sort, setSort] = useState('newest')
   const [tagFilter, setTagFilter] = useState('')
@@ -44,7 +44,8 @@ export default function AppGrid({
     let list = [...projects]
 
     // Type filter
-    if (typeFilter !== 'all') list = list.filter(p => p.type === typeFilter)
+    if (typeFilter === 'bookmark') list = list.filter(p => bookmarks.has(p.id))
+    else if (typeFilter !== 'all') list = list.filter(p => p.type === typeFilter)
 
     // Category filter
     if (category !== '전체') list = list.filter(p => p.category === category)
@@ -95,17 +96,17 @@ export default function AppGrid({
       {/* Type + Sort bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
         <div className="flex gap-1">
-          {(['all', 'webapp', 'document'] as const).map(t => (
+          {(['all', 'webapp', 'document', ...(userId ? ['bookmark'] : [])] as const).map(t => (
             <button
               key={t}
-              onClick={() => setTypeFilter(t)}
+              onClick={() => setTypeFilter(t as any)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 typeFilter === t
                   ? 'bg-green-600 text-white'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              {t === 'all' ? '전체' : t === 'webapp' ? '웹앱' : '문서'}
+              {t === 'all' ? '전체' : t === 'webapp' ? '웹앱' : t === 'document' ? '문서' : '북마크'}
             </button>
           ))}
         </div>
