@@ -116,7 +116,7 @@ create policy "Users can delete their own bookmarks." on bookmarks
 create table if not exists quiz_questions (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  date date not null unique,
+  date date unique,
   question text not null,
   options jsonb not null,
   answer integer not null,

@@ -32,7 +32,6 @@ export default function QuizBanner({ userId }: { userId: string }) {
   const [dismissed, setDismissed] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [isBonusMode, setIsBonusMode] = useState(false)
-  const [noMore, setNoMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
@@ -103,9 +102,7 @@ export default function QuizBanner({ userId }: { userId: string }) {
     try {
       const res = await fetch('/api/quiz?mode=random')
       const data = await res.json()
-      if (data.noMore || !data.quiz) {
-        setNoMore(true)
-      } else {
+      if (data.quiz) {
         setQuiz(data.quiz)
         setSelected(null)
         setResult(null)
@@ -132,23 +129,18 @@ export default function QuizBanner({ userId }: { userId: string }) {
             <span className="text-green-600 ml-1">(+{todayResult.score}점)</span>
           )}
         </div>
-        {!noMore && (
-          <button
-            onClick={handleMoreQuiz}
-            disabled={loadingMore}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors disabled:opacity-50 shrink-0"
-          >
-            {loadingMore ? (
-              <RefreshCw className="w-3 h-3 animate-spin" />
-            ) : (
-              <RefreshCw className="w-3 h-3" />
-            )}
-            더 풀기
-          </button>
-        )}
-        {noMore && (
-          <span className="text-xs text-gray-400 shrink-0">모두 완료!</span>
-        )}
+        <button
+          onClick={handleMoreQuiz}
+          disabled={loadingMore}
+          className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors disabled:opacity-50 shrink-0"
+        >
+          {loadingMore ? (
+            <RefreshCw className="w-3 h-3 animate-spin" />
+          ) : (
+            <RefreshCw className="w-3 h-3" />
+          )}
+          더 풀기
+        </button>
         <button
           onClick={handleDismiss}
           className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors"
@@ -206,7 +198,7 @@ export default function QuizBanner({ userId }: { userId: string }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {/* Result feedback */}
+          {/* Result header */}
           <div
             className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold ${
               result.correct
@@ -223,36 +215,59 @@ export default function QuizBanner({ userId }: { userId: string }) {
             ) : (
               <>
                 <XCircle className="w-4 h-4 shrink-0" />
-                틀렸습니다
+                오답!
+                <span className="ml-auto text-xs font-normal">
+                  정답: {quiz.options.find(o => o.value === quiz.correct)?.label}
+                </span>
               </>
             )}
           </div>
 
-          {/* Explanation */}
+          {/* Answer options review */}
+          <div className="space-y-1">
+            {quiz.options.map(opt => {
+              const isCorrectAnswer = opt.value === quiz.correct
+              const isUserPick = opt.value === selected
+              let style = 'bg-white text-gray-400 border-gray-100'
+              if (isCorrectAnswer) style = 'bg-green-50 text-green-700 border-green-200 font-medium'
+              if (isUserPick && !isCorrectAnswer) style = 'bg-red-50 text-red-400 border-red-200 line-through'
+              return (
+                <div key={opt.value} className={`px-3 py-1.5 rounded-lg text-xs border ${style}`}>
+                  {opt.label}
+                  {isCorrectAnswer && <span className="ml-1 text-green-500">&#10003;</span>}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Explanation — always shown */}
           {quiz.explanation && (
-            <p className="text-xs text-gray-600 leading-relaxed bg-white border border-gray-100 rounded-xl px-3 py-2">
-              {quiz.explanation}
-            </p>
+            <div className="bg-white border border-gray-100 rounded-xl px-3 py-2.5">
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">해설</p>
+              <p className="text-xs text-gray-700 leading-relaxed">
+                {quiz.explanation}
+              </p>
+            </div>
           )}
 
           {/* More quiz button */}
-          {!noMore && (
-            <button
-              onClick={handleMoreQuiz}
-              disabled={loadingMore}
-              className="flex items-center justify-center gap-1.5 w-full py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-            >
-              {loadingMore ? (
+          <button
+            onClick={handleMoreQuiz}
+            disabled={loadingMore}
+            className="flex items-center justify-center gap-1.5 w-full py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+          >
+            {loadingMore ? (
+              <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              ) : (
+                퀴즈 생성 중...
+              </>
+            ) : (
+              <>
                 <RefreshCw className="w-3.5 h-3.5" />
-              )}
-              퀴즈 더 풀기
-            </button>
-          )}
-          {noMore && (
-            <p className="text-center text-xs text-gray-400 py-1">풀 수 있는 퀴즈를 모두 완료했습니다!</p>
-          )}
+                퀴즈 더 풀기
+              </>
+            )}
+          </button>
         </div>
       )}
     </div>
