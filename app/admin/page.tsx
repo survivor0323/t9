@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 import AdminTabs from './AdminTabs'
 
 export const dynamic = 'force-dynamic'
@@ -23,14 +24,16 @@ export default async function AdminPage() {
 
   if (!profile?.is_admin) redirect('/')
 
-  // Fetch all projects
-  const { data: projects } = await supabase
+  const admin = createAdminClient()
+
+  // Fetch all projects (bypass RLS)
+  const { data: projects } = await admin
     .from('projects')
     .select('id, title, type, status, views, is_featured, created_at, category')
     .order('created_at', { ascending: false })
 
-  // Fetch all profiles (users)
-  const { data: profiles } = await supabase
+  // Fetch all profiles (bypass RLS)
+  const { data: profiles } = await admin
     .from('profiles')
     .select('id, full_name, quiz_score, is_admin, created_at')
     .order('created_at', { ascending: false })
