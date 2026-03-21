@@ -9,7 +9,7 @@ create table if not exists profiles (
   full_name text,
   avatar_url text,
   is_admin boolean default false,
-  quiz_score integer default 0
+  point integer default 0
 );
 
 alter table profiles enable row level security;
@@ -146,6 +146,24 @@ create policy "Users can view their own submissions." on quiz_submissions
   for select using (auth.uid() = user_id);
 create policy "Users can submit their own answers." on quiz_submissions
   for insert with check (auth.uid() = user_id);
+
+-- point_logs
+create table if not exists point_logs (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  user_id uuid references profiles(id) on delete cascade not null,
+  amount integer not null,
+  reason text not null,
+  reference_id uuid
+);
+
+alter table point_logs enable row level security;
+create policy "Users can view own point logs." on point_logs
+  for select using (auth.uid() = user_id);
+create policy "Admins can view all point logs." on point_logs
+  for select using (
+    exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+  );
 
 -- Realtime
 begin;

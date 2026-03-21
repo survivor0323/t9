@@ -33,7 +33,16 @@ export type Profile = {
   full_name?: string
   avatar_url?: string
   is_admin?: boolean
-  quiz_score?: number
+  point?: number
+}
+
+export type PointLog = {
+  id: string
+  created_at: string
+  user_id: string
+  amount: number
+  reason: string
+  reference_id?: string
 }
 
 export type Review = {

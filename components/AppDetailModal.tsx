@@ -136,13 +136,27 @@ export default function AppDetailModal({
     if (!userId) return alert('리뷰를 작성하려면 로그인이 필요합니다.')
     setSubmittingReview(true)
     try {
-      const { error } = await supabase.from('reviews').insert({
+      const { data: review, error } = await supabase.from('reviews').insert({
         project_id: project.id,
         user_id: userId,
         rating: userRating,
         comment: userComment,
-      })
+      }).select().single()
       if (error) throw error
+
+      // Award points: +10 to reviewer, +20 to project owner
+      if (review) {
+        fetch('/api/points', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, amount: 10, reason: 'review_written', referenceId: review.id }),
+        }).catch(() => {})
+        fetch('/api/points', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: project.user_id, amount: 20, reason: 'review_received', referenceId: review.id }),
+        }).catch(() => {})
+      }
 
       const { data } = await supabase
         .from('reviews')

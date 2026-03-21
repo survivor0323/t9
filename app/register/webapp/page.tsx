@@ -125,6 +125,15 @@ export default function RegisterWebappPage() {
 
       if (error) throw error
 
+      // Award registration points (fire and forget)
+      if (project) {
+        fetch('/api/points', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, amount: 100, reason: 'project_register', referenceId: project.id }),
+        }).catch(() => {})
+      }
+
       // Trigger AI analysis if github_url exists (fire and forget)
       if (project && form.github_url) {
         fetch('/api/analyze', {

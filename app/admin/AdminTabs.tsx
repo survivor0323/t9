@@ -5,6 +5,7 @@ import { BarChart2, AppWindow, Users, Star, Eye, Trash2, ShieldCheck, ShieldOff 
 
 type Project = {
   id: string
+  user_id: string
   title: string
   type: string
   status: string
@@ -17,7 +18,7 @@ type Project = {
 type Profile = {
   id: string
   full_name: string | null
-  quiz_score: number | null
+  point: number | null
   is_admin: boolean
   created_at: string
 }
@@ -57,6 +58,14 @@ export default function AdminTabs({
       setProjects(prev =>
         prev.map(p => p.id === project.id ? { ...p, is_featured: newVal } : p)
       )
+      // Award +100 points when featured
+      if (newVal && project.user_id) {
+        fetch('/api/points', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: project.user_id, amount: 100, reason: 'featured', referenceId: project.id }),
+        }).catch(() => {})
+      }
     }
   }
 
@@ -238,7 +247,7 @@ export default function AdminTabs({
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-left px-4 py-3 font-semibold text-gray-600">이름</th>
-                  <th className="text-right px-4 py-3 font-semibold text-gray-600">퀴즈 점수</th>
+                  <th className="text-right px-4 py-3 font-semibold text-gray-600">포인트</th>
                   <th className="text-center px-4 py-3 font-semibold text-gray-600">관리자</th>
                   <th className="text-center px-4 py-3 font-semibold text-gray-600">가입일</th>
                   <th className="text-center px-4 py-3 font-semibold text-gray-600">권한 변경</th>
@@ -254,7 +263,7 @@ export default function AdminTabs({
                       <div className="text-xs text-gray-400 font-mono">{profile.id.slice(0, 8)}…</div>
                     </td>
                     <td className="px-4 py-3 text-right text-gray-600">
-                      {profile.quiz_score ?? 0}점
+                      {profile.point ?? 0}점
                     </td>
                     <td className="px-4 py-3 text-center">
                       {profile.is_admin ? (

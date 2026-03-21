@@ -146,7 +146,7 @@ export default function RegisterDocumentPage() {
       const status = isPublicReady ? 'public' : 'draft'
       const screenshots = form.thumbnail_url ? [form.thumbnail_url] : []
 
-      const { error } = await supabase
+      const { data: project, error } = await supabase
         .from('projects')
         .insert({
           user_id: user.id,
@@ -162,8 +162,19 @@ export default function RegisterDocumentPage() {
           views: 0,
           clicks: 0,
         })
+        .select()
+        .single()
 
       if (error) throw error
+
+      // Award registration points (fire and forget)
+      if (project) {
+        fetch('/api/points', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, amount: 100, reason: 'project_register', referenceId: project.id }),
+        }).catch(() => {})
+      }
 
       router.push('/')
     } catch {

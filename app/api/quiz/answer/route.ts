@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 
 const POINTS_FOR_CORRECT = 10
 
@@ -7,6 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const { quizId, answer } = await req.json()
     const supabase = await createClient()
+    const admin = createAdminClient()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -26,18 +28,28 @@ export async function POST(req: NextRequest) {
       .from('quiz_submissions')
       .insert({ user_id: user.id, question_id: quizId, is_correct: isCorrect })
 
-    // Update quiz_score if correct
+    // Award points if correct
     if (isCorrect) {
-      const { data: profile } = await supabase
+      const { data: profile } = await admin
         .from('profiles')
-        .select('quiz_score')
+        .select('point')
         .eq('id', user.id)
         .single()
 
-      await supabase
+      await admin
         .from('profiles')
-        .update({ quiz_score: (profile?.quiz_score ?? 0) + POINTS_FOR_CORRECT })
+        .update({ point: (profile?.point ?? 0) + POINTS_FOR_CORRECT })
         .eq('id', user.id)
+
+      // Log point history
+      await admin
+        .from('point_logs')
+        .insert({
+          user_id: user.id,
+          amount: POINTS_FOR_CORRECT,
+          reason: 'quiz_correct',
+          reference_id: quizId,
+        })
     }
 
     return NextResponse.json({ correct: isCorrect, score: isCorrect ? POINTS_FOR_CORRECT : 0 })
